@@ -1,107 +1,55 @@
-const express = require('express');
+const express = require("express");
 const app = express();
-const bodyParser = require('body-parser');
-const cookieParser = require('cookie-parser');
+const path = require("path");
+const cors = require('cors')
 
-const config = require('./config/key');
+const bodyParser = require("body-parser");
+const cookieParser = require("cookie-parser");
 
-const port = 5000;
+const config = require("./config/key");
 
-const { auth } = require('./middleware/auth');
-const { User } = require('./models/User');
 
-app.use(bodyParser.urlencoded({extended: true}));
+const mongoose = require("mongoose");
+const connect = mongoose.connect(config.mongoURI,
+    {
+        useNewUrlParser: true, useUnifiedTopology: true,
+        useCreateIndex: true, useFindAndModify: false
+    })
+    .then(() => console.log('MongoDB Connected...'))
+    .catch(err => console.log(err));
+
+app.use(cors())
+
+//to not get any deprecation warning or error
+//support parsing of application/x-www-form-urlencoded post data
+app.use(bodyParser.urlencoded({ extended: true }));
+//to get json data
+// support parsing of application/json type post data
 app.use(bodyParser.json());
 app.use(cookieParser());
 
-const mongoose_con = require('mongoose');
-mongoose_con.connect(config.mongoURI, {
-    useNewUrlParser: true, useUnifiedTopology: true, useCreateIndex: true, useFindAndModify: false
-}).then(() => console.log('MongoDB connected...'))
-    .catch(err => console.log(err))
+app.use('/api/users', require('./routes/users'));
 
-app.get('/', (req, res) => {
-    res.send('Hello Elie Orgel!');
-})
 
-app.get('/api/hello', (req, res) => {
-    res.send('Hello Elie Orgel!');
-})
+//use this to show the image you have in node js server to client (react js)
+//https://stackoverflow.com/questions/48914987/send-image-path-from-node-js-express-server-to-react-client
+app.use('/uploads', express.static('uploads'));
 
-app.post('/api/users/register', (req, res) => {
-    const user = new User(req.body);
+// Serve static assets if in production
+if (process.env.NODE_ENV === "production") {
 
-    user.save((err, user) => {
-        if (err) {
-            return res.json({ success:false, err:err })
-        } else {
-            return res.status(200).json({ success: true })
-        }
+    // Set static folder
+    // All the javascript and css files will be read and served from this folder
+    app.use(express.static("client/build"));
+
+    // index.html for all page routes    html or routing and naviagtion
+    app.get("*", (req, res) => {
+        res.sendFile(path.resolve(__dirname, "../client", "build", "index.html"));
     });
-})
+}
 
-app.post('/api/users/login', (req, res) => {
-    User.findOne({ email: req.body.email }, (err, user) => {
-        if (!user) {
-            return res.json({
-                loginSuccess: false,
-                message: "There is no user on the email list."
-            })
-        } else {
-            user.comparePassword(req.body.password, (err, isMatch) => {
-                if (!isMatch) {
-                    return res.json({
-                        loginSuccess: false,
-                        message: "incorrect password"
-                    })
-                } else {
-                    user.generateToken((err, user) => {
-                        if (err) {
-                            return res.status(400).send(err);
-                        } else {
-                            // save token cookie
-                            res.cookie("x_auth", user.token)
-                                .status(200)
-                                .json({
-                                    loginSuccess: true,
-                                    userId: user._id
-                                })
-                        }
-                    })
-                }
-            })
-        }
-    })
-})
-
-app.get('/api/users/auth', auth, (req, res) => {
-    res.status(200).json({
-        _id: req.user._id,
-        isAdmin: req.user.role === 0 ? false : true,
-        isAuth: true,
-        email: req.user.email,
-        name: req.user.name,
-        lastname: req.user.lastname,
-        role: req.user.role,
-        image: req.user.image
-    })
-})
-
-app.get('/api/users/logout', auth, (req, res) => {
-    User.findOneAndUpdate({ _id: req.user._id},
-        { token: ""},
-        (err, user) => {
-            if (err) {
-                return res.json({ success: false, err })
-            } else {
-                return res.status(200).send({
-                    success: true
-                })
-            }
-        }
-    );
-})
+const port = process.env.PORT || 5000
 
 app.listen(port, () => {
-    console.log(`boiler-plate Running at ${port}`);
-})
+    console.log(`Server Listening on ${port}`)
+});

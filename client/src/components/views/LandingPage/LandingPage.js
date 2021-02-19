@@ -1,35 +1,16 @@
-import React, { useEffect } from 'react';
-import axios from 'axios';
-import { withRouter } from 'react-router-dom';
+import React from 'react'
+import { FaCode } from "react-icons/fa";
 
-function LandingPage(props) {
-
-    useEffect(() =>{
-        axios.get('/api/hello').then(r => console.log(r.data))
-    }, []);
-
-    const onClickHandler = () => {
-        axios.get('/api/users/logout')
-            .then(response => {
-                if (response.data.success) {
-                    props.history.push('/login');
-                } else {
-                    alert('failed logout');
-                }
-            });
-    }
-
+function LandingPage() {
     return (
-        <div style={{
-            display: 'flex', justifyContent: 'center', alignItems: 'center', width: '100%', height: '100vh', flexDirection: 'column'
-        }}>
-            <h2>LandingPage</h2>
-
-            <button onClick={onClickHandler}>
-                Logout
-            </button>
-        </div>
+        <>
+            <div className="app">
+                <FaCode style={{ fontSize: '4rem' }} /><br />
+                <span style={{ fontSize: '2rem' }}>Let's Start Coding!</span>
+            </div>
+            <div style={{ float: 'right' }}>Thanks For Using This Boiler Plate by Elie</div>
+        </>
     )
 }
 
-export default withRouter(LandingPage);
+export default LandingPage
